@@ -1,0 +1,6 @@
+.feed {
+    padding: 8px;
+    border-radius: 6px;
+    max-height: 40vh;
+    overflow: auto;
+}

@@ -1,0 +1,47 @@
+<div class="flex gap-4 p-5 w-full">
+    <div class="w-3/4 mx-auto">
+        <app-heatmap></app-heatmap>
+        <app-goalprob-chart></app-goalprob-chart>
+    </div>
+    <div class="w-1/4 mx-auto">
+        <app-possession-chart />
+
+        <div class="feed mt-10 bg-base-300" >
+            <h3>Event feed (live)</h3>
+            <ul>
+                @for (e of events(); track $index) {
+                <li>
+
+                    {{ e.timestamp | date:'HH:mm:ss' }} -
+                    <strong [class.text-red-500]="e.team === 'Liverpool FC'"
+                        [class.text-blue-500]="e.team === 'Manchester City'">
+                        {{ e.team }}
+                    </strong> - {{ e.playerId }} -
+                    @if(e.eventTypeString === 'Shot') {
+                    <strong style="color: orange; display:inline-flex; align-items:center;">SHOT!
+                        <span aria-hidden="true" style="margin-left:6px; font-size:1.05em;">🎯</span>
+                    </strong>
+                    <span style="margin-left:6px;">({{ probFor(e) }}%)</span>
+                    }
+                    @if(e.eventTypeString === 'Tackle') {
+                    <strong style="color: lightgreen; display:inline-flex; align-items:center;">Tackle
+                        <span aria-hidden="true" style="font-size:1.05em;">🛡️</span>
+                    </strong>
+                    }
+                    @if(e.eventTypeString === 'Goal') {
+                    <strong style="color: yellow; display: inline-flex; align-items: center;">
+                        GOAL!
+                        <span aria-hidden="true" style="font-size:1.1em; line-height:1;">⚽</span>
+                    </strong>
+
+                    }
+                    @if(e.eventTypeString !== 'Shot' && e.eventTypeString !== 'Tackle'
+                    && e.eventTypeString !== 'Goal') {
+                    {{e.eventTypeString}}
+                    }
+                </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>

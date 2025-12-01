@@ -1,0 +1,63 @@
+<dialog #factsModal class="modal">
+    <div class="modal-box max-w-lg rounded-lg shadow-xl p-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center gap-4">
+                <div
+                    class="rounded-full bg-linear-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="size-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">About This Dashboard</h3>
+                    <p class="mt-1 text-sm text-primary">Live simulated football match with interactive visualizations
+                        and a real-time event feed.</p>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-circle btn-ghost" aria-label="Close" (click)="close()">✕</button>
+        </div>
+        <div class="mt-4 space-y-4 text-sm">
+            <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 text-sm">
+                <li class="flex items-start gap-2"><span class="mt-1 text-blue-500">•</span>
+                    <div><strong>Live feed:</strong> Passes, shots, tackles and goals with timestamps and player/team
+                        info.</div>
+                </li>
+                <li class="flex items-start gap-2"><span class="mt-1 text-pink-500">•</span>
+                    <div><strong>Heatmap:</strong> Event density on the pitch (passes vs shots color-coded).</div>
+                </li>
+                <li class="flex items-start gap-2"><span class="mt-1 text-green-500">•</span>
+                    <div><strong>Possession chart:</strong> Shows estimated possession share between teams.</div>
+                </li>
+                <li class="flex items-start gap-2"><span class="mt-1 text-yellow-500">•</span>
+                    <div><strong>Goal probability:</strong> Tracks estimated chance of a goal for recent shots.</div>
+                </li>
+                <li class="flex items-start gap-2 sm:col-span-2"><span class="mt-1 text-gray-500">•</span>
+                    <div><strong>Theme & filters:</strong> Use the theme toggle in the navbar and this modal to adjust
+                        available filters.</div>
+                </li>
+            </ul>
+
+            <div>
+                <h4 class="font-semibold mt-2">How the backend works</h4>
+                <ul class="list-inside list-disc mt-2 space-y-1 text-sm text-info">
+                    <li><strong>SignalR Hub:</strong> The server exposes a SignalR hub (`/matchHub`) that the client
+                        connects to for live events.</li>
+                    <li><strong>Match simulator:</strong> A background <code>MatchSimulator</code> service generates
+                        synthetic events and pushes them to the hub.</li>
+                    <li><strong>Event payloads:</strong> Each event contains team, playerId, timestamp, x/y coordinates
+                        and a type string — the client updates the feed, charts and heatmap.</li>
+                    <li><strong>HTTP negotiate:</strong> The client requests <code>/matchHub/negotiate</code> to obtain
+                        connection info — ensure the API runs on <code>https://localhost:5001</code> for local dev.</li>
+                    <li><strong>CORS & credentials:</strong> The API must allow the Angular origin and use credentials
+                        for SignalR (avoid AllowAnyOrigin with AllowCredentials).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-3">
+            <button class="btn btn-sm btn-ghost" type="button" (click)="close()">Close</button>
+        </div>
+    </div>
+</dialog>
