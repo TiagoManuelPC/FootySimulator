@@ -9,167 +9,124 @@ import simpleheat from 'simpleheat';
 export class Heatmap implements AfterViewInit, OnDestroy {
     @ViewChild('heatmapContainer', { static: true }) container!: ElementRef<HTMLDivElement>;
     @ViewChild('pitchCanvas', { static: true }) pitchCanvas!: ElementRef<HTMLCanvasElement>;
-    private heat!: ReturnType<typeof simpleheat> | null;
-    private canvas!: HTMLCanvasElement | null;
+
+    private heat: ReturnType<typeof simpleheat> | null = null;
     private resizeObserver: ResizeObserver | null = null;
     private dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
-    // persistent storage of points as normalized coordinates (0..1)
+    // store points as normalized coords so they survive resize
     private normalizedPoints: Array<[number, number, number]> = [];
 
     ngAfterViewInit(): void {
-        this.drawPitch();
-        const containerEl = this.container.nativeElement;
-        // the visual aspect box (.heatmap-wrap) is the parent of the layer;
-        // observe that for size changes because the inner layer can be 100%.
-        const wrapperEl = containerEl.parentElement as HTMLElement || containerEl;
-
-        // create an explicit canvas so we control sizing and DPR handling
-        this.canvas = document.createElement('canvas');
-        this.canvas.style.position = 'absolute';
-        this.canvas.style.inset = '0';
-        this.canvas.style.width = '100%';
-        this.canvas.style.height = '100%';
-        containerEl.appendChild(this.canvas);
+        const wrapper = (this.container.nativeElement.parentElement || this.container.nativeElement) as HTMLElement;
+        const canvas = this.pitchCanvas.nativeElement as HTMLCanvasElement;
 
         const setup = () => {
-            // measure the wrapper (aspect box) for layout
-            const rect = wrapperEl.getBoundingClientRect();
-            let layoutW = Math.max(1, Math.round(rect.width));
-            let layoutH = Math.max(1, Math.round(rect.height));
+            const rect = wrapper.getBoundingClientRect();
+            let w = Math.max(1, Math.round(rect.width));
+            let h = Math.max(1, Math.round(rect.height));
 
-            // defensive fallback when parent hasn't laid out yet
-            if (layoutW < 50 || layoutH < 50) {
-                layoutW = Math.max(300, Math.round(window.innerWidth));
-                layoutH = Math.max(200, Math.round(window.innerHeight));
+            // fallback when layout not ready
+            if (w < 50 || h < 50) {
+                w = Math.max(300, Math.round(window.innerWidth));
+                h = Math.max(200, Math.round(window.innerHeight));
             }
 
-            // The container now enforces an aspect box (via CSS). Fill that box.
-            this.canvas!.style.left = `0px`;
-            this.canvas!.style.top = `0px`;
-            this.canvas!.style.width = `100%`;
-            this.canvas!.style.height = `100%`;
+            // set CSS size and backing store (DPR-aware)
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            canvas.width = w * this.dpr;
+            canvas.height = h * this.dpr;
 
-            // backing store accounts for DPR: use the layout CSS size
-            this.canvas!.width = layoutW * this.dpr;
-            this.canvas!.height = layoutH * this.dpr;
-
-            // Also size the pitch canvas (overlay) to match the wrapper layout
-            try {
-                const pitch = this.pitchCanvas && this.pitchCanvas.nativeElement;
-                if (pitch) {
-                    pitch.style.width = `${layoutW}px`;
-                    pitch.style.height = `${layoutH}px`;
-                    pitch.width = layoutW * this.dpr;
-                    pitch.height = layoutH * this.dpr;
-                }
-            } catch (e) {
-                console.warn('heatmap: failed to size pitch canvas', e);
-            }
-
-            const ctx = this.canvas!.getContext('2d');
-            if (ctx) ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-
-            // initialize simpleheat with a DPR-aware radius
-            this.heat = simpleheat(this.canvas as HTMLCanvasElement);
+            // initialize or re-init simpleheat
+            this.heat = simpleheat(canvas);
             this.heat.radius(25 * this.dpr, 15 * this.dpr);
-            this.heat.clear();
-            // redraw any persisted points after (re)initializing
+
+            // redraw heat and pitch
             this.redrawPoints();
-            // redraw the pitch overlay to match the new size/backing buffer
             this.drawPitch();
-            console.debug('heatmap setup done', { layoutW, layoutH, dpr: this.dpr, canvasBackingW: this.canvas!.width, canvasBackingH: this.canvas!.height });
+
+            console.debug('heatmap setup', { w, h, backingW: canvas.width, backingH: canvas.height, dpr: this.dpr });
         };
 
         setup();
 
-        // watch for wrapper size changes (aspect box)
         this.resizeObserver = new ResizeObserver(() => {
             setup();
-            // ensure both heat and pitch are redrawn after resize
-            this.redrawPoints();
-            this.drawPitch();
-            console.debug('Heatmap resized', { wrapperRect: wrapperEl.getBoundingClientRect(), canvasWidth: this.canvas?.width, canvasHeight: this.canvas?.height });
         });
-        this.resizeObserver.observe(wrapperEl);
+        this.resizeObserver.observe(wrapper);
 
-        // fallback: also listen to window resize to cover edge cases
-        const onWinResize = () => { setup(); this.redrawPoints(); this.drawPitch(); };
+        // fallback
+        const onWinResize = () => setup();
         window.addEventListener('resize', onWinResize);
-        // store a cleanup reference on the instance so ngOnDestroy can remove it
         (this as any)._onWinResize = onWinResize;
     }
 
-    //     // Draw football pitch lines
     private drawPitch() {
-        const canvas = this.pitchCanvas.nativeElement;
+        const canvas = this.pitchCanvas.nativeElement as HTMLCanvasElement;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const dpr = this.dpr || 1;
-        const layoutW = Math.max(1, Math.round(rect.width));
-        const layoutH = Math.max(1, Math.round(rect.height));
+        const bw = canvas.width; // backing-pixel coords
+        const bh = canvas.height;
 
-        // Backing buffer should use DPR
-        canvas.style.width = `${layoutW}px`;
-        canvas.style.height = `${layoutH}px`;
-        canvas.width = layoutW * dpr;
-        canvas.height = layoutH * dpr;
+        // Clear before drawing (heat already drawn beneath)
+        // We clear only the pitch layers by redrawing heat first then pitch.
+        // Note: simpleheat.draw() overwrites the canvas, so ensure redraw order
+        // is: heat -> pitch.
 
-        const w = canvas.width; // backing-pixel width
-        const h = canvas.height;
-        // draw in backing-pixel coordinates so pitch lines align with heatmap
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-
+        // Draw pitch lines on top
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // use backing-pixel coords
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = Math.max(1, 2 * dpr);
+        ctx.lineWidth = Math.max(1, 2 * this.dpr);
+        ctx.clearRect(0, 0, bw, bh);
+
+        // If there are heat points, redraw them first into the cleared canvas
+        if (this.heat && this.normalizedPoints.length) {
+            const pts: [number, number, number][] = this.normalizedPoints.map(p => [p[0] * bw, p[1] * bh, p[2]]);
+            this.heat.clear();
+            this.heat.data(pts).draw();
+        }
 
         // Outer boundaries
-        ctx.strokeRect(0, 0, w, h);
+        ctx.strokeRect(0, 0, bw, bh);
 
         // Halfway line
         ctx.beginPath();
-        ctx.moveTo(w / 2, 0);
-        ctx.lineTo(w / 2, h);
+        ctx.moveTo(bw / 2, 0);
+        ctx.lineTo(bw / 2, bh);
         ctx.stroke();
 
         // Center circle
-        const centerX = w / 2;
-        const centerY = h / 2;
-        const centerRadius = (w / 9); // approximate size
+        const centerX = bw / 2;
+        const centerY = bh / 2;
+        const centerRadius = (bw / 9);
         ctx.beginPath();
         ctx.arc(centerX, centerY, centerRadius, 0, Math.PI * 2);
         ctx.stroke();
 
         // Penalty areas
-        const penaltyWidth = w / 6;
-        const penaltyHeight = h / 1.25;
-
-        // Left penalty
+        const penaltyWidth = bw / 6;
+        const penaltyHeight = bh / 1.25;
         ctx.strokeRect(0, centerY - penaltyHeight / 2, penaltyWidth, penaltyHeight);
+        ctx.strokeRect(bw - penaltyWidth, centerY - penaltyHeight / 2, penaltyWidth, penaltyHeight);
 
-        // Right penalty
-        ctx.strokeRect(w - penaltyWidth, centerY - penaltyHeight / 2, penaltyWidth, penaltyHeight);
-
-        // Goal areas (smaller inside penalty)
         const goalWidth = penaltyWidth / 2.5;
         const goalHeight = penaltyHeight / 3;
-
-        // Left goal area
         ctx.strokeRect(0, centerY - goalHeight / 2, goalWidth, goalHeight);
+        ctx.strokeRect(bw - goalWidth, centerY - goalHeight / 2, goalWidth, goalHeight);
 
-        // Right goal area
-        ctx.strokeRect(w - goalWidth, centerY - goalHeight / 2, goalWidth, goalHeight);
-
-        // Penalty spots
+        // Penalty spots (scaled appropriately)
+        const spotRadius = Math.max(1, 3 * this.dpr);
         ctx.beginPath();
-        ctx.arc(penaltyWidth - 80, centerY, 3, 0, Math.PI * 2); // left
+        ctx.arc(penaltyWidth - 80 * this.dpr, centerY, spotRadius, 0, Math.PI * 2);
         ctx.fillStyle = '#fff';
         ctx.fill();
-
         ctx.beginPath();
-        ctx.arc(w - penaltyWidth + 80, centerY, 3, 0, Math.PI * 2); // right
+        ctx.arc(bw - penaltyWidth + 80 * this.dpr, centerY, spotRadius, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.restore();
     }
 
     ngOnDestroy(): void {
@@ -177,47 +134,43 @@ export class Heatmap implements AfterViewInit, OnDestroy {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
         }
-        this.heat = null;
-        this.canvas = null;
-        // remove window resize listener if added
         if ((this as any)._onWinResize) {
             window.removeEventListener('resize', (this as any)._onWinResize);
             delete (this as any)._onWinResize;
         }
+        this.heat = null;
     }
 
     addPoint(team: string, x: number, y: number) {
-        // persist as normalized coordinates so the point survives resize
-        if (!this.canvas || !this.heat) return;
-        const nx = ((x + 52) / 104); // fraction across pitch width
-        const ny = ((34 - y) / 68);  // fraction across pitch height
+        const nx = ((x + 52) / 104);
+        const ny = ((34 - y) / 68);
         const value = team === 'Liverpool FC' ? 6 : 4;
         this.normalizedPoints.push([nx, ny, value]);
         this.redrawPoints();
     }
 
     addRandomData(count = 500) {
-        if (!this.canvas || !this.heat) return;
         for (let i = 0; i < count; i++) {
-            const nx = Math.random();
-            const ny = Math.random();
-            const v = Math.random();
-            this.normalizedPoints.push([nx, ny, v]);
+            this.normalizedPoints.push([Math.random(), Math.random(), Math.random()]);
         }
         this.redrawPoints();
     }
 
-    // convert normalized points to backing-buffer coordinates and draw
     private redrawPoints() {
-        if (!this.canvas || !this.heat) return;
-        const bw = this.canvas.width;
-        const bh = this.canvas.height;
-        if (!this.normalizedPoints || this.normalizedPoints.length === 0) {
+        const canvas = this.pitchCanvas.nativeElement as HTMLCanvasElement;
+        if (!this.heat || !canvas) return;
+        const bw = canvas.width;
+        const bh = canvas.height;
+        if (!this.normalizedPoints.length) {
             this.heat.clear();
+            // still redraw pitch
+            this.drawPitch();
             return;
         }
         const pts: [number, number, number][] = this.normalizedPoints.map(p => [p[0] * bw, p[1] * bh, p[2]]);
+        this.heat.clear();
         this.heat.data(pts).draw();
+        this.drawPitch();
     }
 
 }
