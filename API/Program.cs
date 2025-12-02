@@ -59,21 +59,41 @@ if (!string.IsNullOrEmpty(port))
     // Listen on the platform's assigned port for HTTP
     builder.WebHost.UseUrls($"http://*:{port}");
 }
-builder.Services.AddSignalR();
+
+// Configure CORS origins via environment variable for production deployments.
+// ALLOWED_ORIGINS should be a comma-separated list, e.g.
+// "http://localhost:4200,https://footysimulator.netlify.app,https://footysimulator.onrender.com"
+var allowedOriginsEnv = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS");
+string[] allowedOrigins;
+if (!string.IsNullOrEmpty(allowedOriginsEnv))
+{
+    allowedOrigins = allowedOriginsEnv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}
+else
+{
+    // sensible defaults for development + the deployed frontends
+    allowedOrigins = new[] { "http://localhost:4200", "https://localhost:4200", "https://footysimulator.netlify.app", "https://footysimulator.onrender.com" };
+}
+
+var corsPolicyName = "CorsPolicy";
 builder.Services.AddCors(options =>
 {
-    options.AddDefaultPolicy(policy =>
+    options.AddPolicy(name: corsPolicyName, policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "https://localhost:4200")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
     });
 });
+builder.Services.AddSignalR();
 builder.Services.AddSingleton<MatchSimulator>(); // background simulator service
 
 var app = builder.Build();
-app.UseCors();
+
+// Apply the named CORS policy so preflight requests (including SignalR negotiate)
+// return the correct Access-Control-Allow-* headers.
+app.UseCors(corsPolicyName);
 app.MapHub<MatchHub>("/matchHub");
 
 // Auto-start the match simulator on app startup for convenience in dev
