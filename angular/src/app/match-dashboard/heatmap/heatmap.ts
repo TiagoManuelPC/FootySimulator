@@ -19,6 +19,9 @@ export class Heatmap implements AfterViewInit, OnDestroy {
     ngAfterViewInit(): void {
         this.drawPitch();
         const containerEl = this.container.nativeElement;
+        // the visual aspect box (.heatmap-wrap) is the parent of the layer;
+        // observe that for size changes because the inner layer can be 100%.
+        const wrapperEl = containerEl.parentElement as HTMLElement || containerEl;
 
         // create an explicit canvas so we control sizing and DPR handling
         this.canvas = document.createElement('canvas');
@@ -29,7 +32,8 @@ export class Heatmap implements AfterViewInit, OnDestroy {
         containerEl.appendChild(this.canvas);
 
         const setup = () => {
-            const rect = containerEl.getBoundingClientRect();
+            // measure the wrapper (aspect box) for layout
+            const rect = wrapperEl.getBoundingClientRect();
             let layoutW = Math.max(1, Math.round(rect.width));
             let layoutH = Math.max(1, Math.round(rect.height));
 
@@ -49,6 +53,19 @@ export class Heatmap implements AfterViewInit, OnDestroy {
             this.canvas!.width = layoutW * this.dpr;
             this.canvas!.height = layoutH * this.dpr;
 
+            // Also size the pitch canvas (overlay) to match the wrapper layout
+            try {
+                const pitch = this.pitchCanvas && this.pitchCanvas.nativeElement;
+                if (pitch) {
+                    pitch.style.width = `${layoutW}px`;
+                    pitch.style.height = `${layoutH}px`;
+                    pitch.width = layoutW * this.dpr;
+                    pitch.height = layoutH * this.dpr;
+                }
+            } catch (e) {
+                console.warn('heatmap: failed to size pitch canvas', e);
+            }
+
             const ctx = this.canvas!.getContext('2d');
             if (ctx) ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
@@ -58,17 +75,28 @@ export class Heatmap implements AfterViewInit, OnDestroy {
             this.heat.clear();
             // redraw any persisted points after (re)initializing
             this.redrawPoints();
+            // redraw the pitch overlay to match the new size/backing buffer
+            this.drawPitch();
+            console.debug('heatmap setup done', { layoutW, layoutH, dpr: this.dpr, canvasBackingW: this.canvas!.width, canvasBackingH: this.canvas!.height });
         };
 
         setup();
 
-        // watch for container size changes
+        // watch for wrapper size changes (aspect box)
         this.resizeObserver = new ResizeObserver(() => {
             setup();
-            // setup() calls redrawPoints(), but ensure redraw after resize
+            // ensure both heat and pitch are redrawn after resize
             this.redrawPoints();
+            this.drawPitch();
+            console.debug('Heatmap resized', { wrapperRect: wrapperEl.getBoundingClientRect(), canvasWidth: this.canvas?.width, canvasHeight: this.canvas?.height });
         });
-        this.resizeObserver.observe(containerEl);
+        this.resizeObserver.observe(wrapperEl);
+
+        // fallback: also listen to window resize to cover edge cases
+        const onWinResize = () => { setup(); this.redrawPoints(); this.drawPitch(); };
+        window.addEventListener('resize', onWinResize);
+        // store a cleanup reference on the instance so ngOnDestroy can remove it
+        (this as any)._onWinResize = onWinResize;
     }
 
     //     // Draw football pitch lines
@@ -88,12 +116,13 @@ export class Heatmap implements AfterViewInit, OnDestroy {
         canvas.width = layoutW * dpr;
         canvas.height = layoutH * dpr;
 
-        const w = canvas.width;
+        const w = canvas.width; // backing-pixel width
         const h = canvas.height;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // draw in backing-pixel coordinates so pitch lines align with heatmap
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(1, 2 * dpr);
 
         // Outer boundaries
         ctx.strokeRect(0, 0, w, h);
@@ -150,6 +179,11 @@ export class Heatmap implements AfterViewInit, OnDestroy {
         }
         this.heat = null;
         this.canvas = null;
+        // remove window resize listener if added
+        if ((this as any)._onWinResize) {
+            window.removeEventListener('resize', (this as any)._onWinResize);
+            delete (this as any)._onWinResize;
+        }
     }
 
     addPoint(team: string, x: number, y: number) {
