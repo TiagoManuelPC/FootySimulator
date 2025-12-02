@@ -25,13 +25,6 @@ export class Heatmap implements AfterViewInit {
         });
         console.log('Heatmap initialized');
         console.log(this.heatmapInstance);
-        const points = [{ x: 10, y: 10, value: 100}];
-        const data = {
-      max: 10,
-      min: 0,
-      data: points
-    };
-        this.heatmapInstance.setData(data);
     }
 
     // Draw football pitch lines
@@ -102,12 +95,11 @@ export class Heatmap implements AfterViewInit {
         const rect = this.container.nativeElement.getBoundingClientRect();
         const px = ((x + 52) / 104) * rect.width;
         const py = ((34 - y) / 68) * rect.height;
-        // console.log(`Adding heatmap point for team ${team} at (${x}, ${y}) -> (${px}, ${py})`);
-        // this.heatmapInstance.addData({
-        //     x: Math.round(px),
-        //     y: Math.round(py),
-        //     value: team === 'Liverpool FC' ? 6 : 4
-        // });
-
+        console.log(`Adding heatmap point for team ${team} at (${x}, ${y}) -> (${px}, ${py})`);
+        this.heatmapInstance.addData({
+            x: Math.round(px),
+            y: Math.round(py),
+            value: team === 'Liverpool FC' ? 6 : 4
+        });
     }
 }
