@@ -25,7 +25,13 @@ export class Heatmap implements AfterViewInit {
         });
         console.log('Heatmap initialized');
         console.log(this.heatmapInstance);
-        this.heatmapInstance.addData({ x: 10, y: 10, value: 100});
+        const points = [{ x: 10, y: 10, value: 100}];
+        const data = {
+      max: 10,
+      min: 0,
+      data: points
+    };
+        this.heatmapInstance.setData(data);
     }
 
     // Draw football pitch lines
