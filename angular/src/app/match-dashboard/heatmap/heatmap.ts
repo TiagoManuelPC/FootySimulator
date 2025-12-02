@@ -13,7 +13,7 @@ export class Heatmap implements AfterViewInit {
 
     private heatmapInstance: any;
 
-    ngAfterViewInit(): void {
+    ngAfterViewInit() {
     this.drawPitch();
 
     requestAnimationFrame(() => {
@@ -25,6 +25,10 @@ export class Heatmap implements AfterViewInit {
             minOpacity: 0,
             blur: 0.8
         });
+
+        // Force heatmap canvas to get a writable context
+        const canvas = this.container.nativeElement.querySelector('canvas');
+        canvas?.getContext('2d', { willReadFrequently: true });
     });
 }
 
