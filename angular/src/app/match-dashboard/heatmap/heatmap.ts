@@ -14,23 +14,24 @@ export class Heatmap implements AfterViewInit {
     private heatmapInstance: any;
 
     ngAfterViewInit(): void {
-        this.drawPitch();
+    this.drawPitch();
 
+    requestAnimationFrame(() => {
         this.heatmapInstance = (h337 as any).create({
             container: this.container.nativeElement,
-            renderer: 'canvas',  // ← CRITICAL FIX
+            renderer: 'canvas',
             radius: 40,
             maxOpacity: 0.7,
             minOpacity: 0,
             blur: 0.8
         });
-    }
+    });
+}
 
     // Draw football pitch lines
     private drawPitch() {
         const canvas = this.pitchCanvas.nativeElement;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
+        const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         const rect = canvas.getBoundingClientRect();
