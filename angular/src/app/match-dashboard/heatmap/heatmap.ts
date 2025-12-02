@@ -25,6 +25,7 @@ export class Heatmap implements AfterViewInit {
         });
         console.log('Heatmap initialized');
         console.log(this.heatmapInstance);
+        this.heatmapInstance.addData({ x: 10, y: 10, value: 100});
     }
 
     // Draw football pitch lines
@@ -101,6 +102,6 @@ export class Heatmap implements AfterViewInit {
         //     y: Math.round(py),
         //     value: team === 'Liverpool FC' ? 6 : 4
         // });
-        this.heatmapInstance.addData({ x: 10, y: 10, value: 100});
+
     }
 }
