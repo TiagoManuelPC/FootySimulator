@@ -191,14 +191,14 @@ export class Heatmap implements AfterViewInit {
   }
 
   addPoint(team: string, x: number, y: number) {
-        const rect = this.container.nativeElement.getBoundingClientRect();
-        const px = ((x + 52) / 104) * rect.width;
-        const py = ((34 - y) / 68) * rect.height;
-        this.heatmapInstance.addData({
-            x: Math.round(px),
-            y: Math.round(py),
-            value: team === 'Liverpool FC' ? 6 : 4
-        });
+        // const rect = this.container.nativeElement.getBoundingClientRect();
+        // const px = ((x + 52) / 104) * rect.width;
+        // const py = ((34 - y) / 68) * rect.height;
+        // this.heatmapInstance.addData({
+        //     x: Math.round(px),
+        //     y: Math.round(py),
+        //     value: team === 'Liverpool FC' ? 6 : 4
+        // });
     }
 }
 
