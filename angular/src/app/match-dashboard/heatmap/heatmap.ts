@@ -23,6 +23,41 @@ export class Heatmap implements AfterViewInit {
             minOpacity: 0,
             blur: 0.8
         });
+
+        // Defensive runtime wrapper: some browser/runtime combos expose ImageData.data
+        // as a read-only view. heatmap.js attempts to assign into the ImageData buffer
+        // which can throw. Wrap the renderer's _colorize so we pass a writable copy
+        // to the original implementation if needed.
+        try {
+            const renderer = this.heatmapInstance._renderer;
+            if (renderer && typeof renderer._colorize === 'function') {
+                const origColorize = renderer._colorize.bind(renderer);
+                renderer._colorize = (imgData: ImageData, palette: any) => {
+                    try {
+                        return origColorize(imgData, palette);
+                    } catch (err) {
+                        // fallback: create a writable copy of the ImageData and run original on it
+                        try {
+                            const copied = new ImageData(new Uint8ClampedArray(imgData.data), imgData.width, imgData.height);
+                            const result = origColorize(copied, palette);
+                            // attempt to blit the resulting ImageData to the renderer canvas
+                            try {
+                                const ctx = (renderer.canvas && (renderer.canvas.getContext as any)) ? renderer.canvas.getContext('2d') : (renderer._ctx || null);
+                                if (ctx && copied) ctx.putImageData(copied, 0, 0);
+                            } catch (blitErr) {
+                                console.warn('heatmap: fallback blit failed', blitErr);
+                            }
+                            return result;
+                        } catch (copyErr) {
+                            console.error('heatmap: fallback colorize failed', copyErr);
+                            return undefined;
+                        }
+                    }
+                };
+            }
+        } catch (wrapErr) {
+            console.warn('heatmap: could not wrap renderer._colorize', wrapErr);
+        }
     }
 
     // Draw football pitch lines
