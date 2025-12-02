@@ -13,24 +13,19 @@ export class Heatmap implements AfterViewInit {
 
     private heatmapInstance: any;
 
-    ngAfterViewInit() {
-    this.drawPitch();
+    ngAfterViewInit(): void {
+        this.drawPitch();
 
-    requestAnimationFrame(() => {
         this.heatmapInstance = (h337 as any).create({
             container: this.container.nativeElement,
-            renderer: 'canvas',
             radius: 40,
             maxOpacity: 0.7,
             minOpacity: 0,
             blur: 0.8
         });
-
-        // Force heatmap canvas to get a writable context
-        const canvas = this.container.nativeElement.querySelector('canvas');
-        canvas?.getContext('2d', { willReadFrequently: true });
-    });
-}
+        console.log('Heatmap initialized');
+        console.log(this.heatmapInstance);
+    }
 
     // Draw football pitch lines
     private drawPitch() {
@@ -100,6 +95,7 @@ export class Heatmap implements AfterViewInit {
         const rect = this.container.nativeElement.getBoundingClientRect();
         const px = ((x + 52) / 104) * rect.width;
         const py = ((34 - y) / 68) * rect.height;
+        console.log(`Adding heatmap point for team ${team} at (${x}, ${y}) -> (${px}, ${py})`);
         this.heatmapInstance.addData({
             x: Math.round(px),
             y: Math.round(py),
