@@ -1,11 +1,13 @@
 .heatmap-wrap {
     width: 100%;
-    height: 60vh;
-    overflow: hidden;
+    /* Maintain football pitch aspect ratio (104:68) via padding-top trick */
     position: relative;
+    overflow: hidden;
     background: #0b2a1a;
+    padding-top: 65.3846%; /* (68 / 104) * 100 */
 }
 
+/* Children use absolute positioning to fill the aspect box */
 .pitch-canvas,
 .heatmap-layer {
     position: absolute;
@@ -13,4 +15,13 @@
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+/* On larger screens cap the visual height so the component doesn't become huge */
+@media (min-width: 768px) {
+    .heatmap-wrap {
+        max-height: 60vh;
+        padding-top: 0; /* allow explicit height to control layout on larger screens */
+        height: 60vh;
+    }
 }

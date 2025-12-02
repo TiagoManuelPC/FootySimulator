@@ -39,9 +39,13 @@ export class Heatmap implements AfterViewInit, OnDestroy {
                 layoutH = Math.max(200, Math.round(window.innerHeight));
             }
 
-            // set CSS size and backing store for DPR
-            this.canvas!.style.width = `${layoutW}px`;
-            this.canvas!.style.height = `${layoutH}px`;
+            // The container now enforces an aspect box (via CSS). Fill that box.
+            this.canvas!.style.left = `0px`;
+            this.canvas!.style.top = `0px`;
+            this.canvas!.style.width = `100%`;
+            this.canvas!.style.height = `100%`;
+
+            // backing store accounts for DPR: use the layout CSS size
             this.canvas!.width = layoutW * this.dpr;
             this.canvas!.height = layoutH * this.dpr;
 
@@ -74,11 +78,19 @@ export class Heatmap implements AfterViewInit, OnDestroy {
         if (!ctx) return;
 
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
+        const dpr = this.dpr || 1;
+        const layoutW = Math.max(1, Math.round(rect.width));
+        const layoutH = Math.max(1, Math.round(rect.height));
+
+        // Backing buffer should use DPR
+        canvas.style.width = `${layoutW}px`;
+        canvas.style.height = `${layoutH}px`;
+        canvas.width = layoutW * dpr;
+        canvas.height = layoutH * dpr;
 
         const w = canvas.width;
         const h = canvas.height;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;

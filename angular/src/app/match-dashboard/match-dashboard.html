@@ -1,47 +1,55 @@
-<div class="flex gap-4 p-5 w-full">
-    <div class="w-3/4 mx-auto">
-        <app-heatmap></app-heatmap>
-        <app-goalprob-chart></app-goalprob-chart>
+<div class="flex flex-col md:flex-row gap-4 p-4 md:p-5 w-full">
+    <div class="w-full md:w-3/4">
+        <div class="space-y-4">
+            <div class="w-full">
+                <app-heatmap></app-heatmap>
+            </div>
+            <div class="w-full">
+                <app-goalprob-chart></app-goalprob-chart>
+            </div>
+        </div>
     </div>
-    <div class="w-1/4 mx-auto">
-        <app-possession-chart />
 
-        <div class="feed mt-10 bg-base-300" >
-            <h3>Event feed (live)</h3>
-            <ul>
+    <aside class="w-full md:w-1/4">
+        <div class="w-full">
+            <app-possession-chart></app-possession-chart>
+        </div>
+
+        <div class="feed mt-6 md:mt-10 bg-base-300 p-3 md:p-4 rounded-lg overflow-auto max-h-48 md:max-h-[60vh]">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-lg font-semibold">Event feed (live)</h3>
+                <span class="text-sm text-muted">Real-time</span>
+            </div>
+
+            <ul class="space-y-2 text-sm">
                 @for (e of events(); track $index) {
-                <li>
+                <li class="wrap-break-words">
 
-                    {{ e.timestamp | date:'HH:mm:ss' }} -
-                    <strong [class.text-red-500]="e.team === 'Liverpool FC'"
-                        [class.text-blue-500]="e.team === 'Manchester City'">
-                        {{ e.team }}
-                    </strong> - {{ e.playerId }} -
-                    @if(e.eventTypeString === 'Shot') {
-                    <strong style="color: orange; display:inline-flex; align-items:center;">SHOT!
-                        <span aria-hidden="true" style="margin-left:6px; font-size:1.05em;">🎯</span>
-                    </strong>
-                    <span style="margin-left:6px;">({{ probFor(e) }}%)</span>
-                    }
-                    @if(e.eventTypeString === 'Tackle') {
-                    <strong style="color: lightgreen; display:inline-flex; align-items:center;">Tackle
-                        <span aria-hidden="true" style="font-size:1.05em;">🛡️</span>
-                    </strong>
-                    }
-                    @if(e.eventTypeString === 'Goal') {
-                    <strong style="color: yellow; display: inline-flex; align-items: center;">
-                        GOAL!
-                        <span aria-hidden="true" style="font-size:1.1em; line-height:1;">⚽</span>
-                    </strong>
+                    <div class="text-xs text-muted">{{ e.timestamp | date:'HH:mm:ss' }}</div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <strong [class.text-red-500]="e.team === 'Liverpool FC'" [class.text-blue-500]="e.team === 'Manchester City'">{{ e.team }}</strong>
+                        <span class="text-xs">- {{ e.playerId }}</span>
 
-                    }
-                    @if(e.eventTypeString !== 'Shot' && e.eventTypeString !== 'Tackle'
-                    && e.eventTypeString !== 'Goal') {
-                    {{e.eventTypeString}}
-                    }
+                        @if(e.eventTypeString === 'Shot') {
+                        <span class="ml-1 inline-flex items-center text-orange-500 font-semibold">SHOT! <span aria-hidden="true" class="ml-1">🎯</span></span>
+                        <span class="text-xs ml-2">({{ probFor(e) }}%)</span>
+                        }
+
+                        @if(e.eventTypeString === 'Tackle') {
+                        <span class="inline-flex items-center text-green-400 font-medium">Tackle <span aria-hidden="true" class="ml-1">🛡️</span></span>
+                        }
+
+                        @if(e.eventTypeString === 'Goal') {
+                        <span class="inline-flex items-center text-yellow-300 font-bold">GOAL! <span aria-hidden="true" class="ml-1">⚽</span></span>
+                        }
+
+                        @if(e.eventTypeString !== 'Shot' && e.eventTypeString !== 'Tackle' && e.eventTypeString !== 'Goal') {
+                        <span class="text-xs">{{e.eventTypeString}}</span>
+                        }
+                    </div>
                 </li>
                 }
             </ul>
         </div>
-    </div>
+    </aside>
 </div>
