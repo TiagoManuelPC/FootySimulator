@@ -1,9 +1,9 @@
 [build]
-  base = "angular"
-  publish = "dist/angular"
-  command = "yarn build"
+base = "angular"
+publish = "dist/angular/browser"
+command = "ng build"
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/*"
+to = "/index.html"
+status = 200
