@@ -15,7 +15,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish ./
 
-# Use PORT env var if provided by the platform; otherwise default to 5001
-ENV ASPNETCORE_URLS="http://+:${PORT:-5001}"
+# Use the PORT Render provides
+ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
 
 ENTRYPOINT ["dotnet", "API.dll"]

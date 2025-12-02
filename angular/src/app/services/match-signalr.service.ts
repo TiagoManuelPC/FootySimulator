@@ -20,8 +20,11 @@ export interface MatchEvent {
 export class SignalrService {
     private hubConnection!: signalR.HubConnection;
     public event$ = new Subject<MatchEvent>();
+    // https://footysimulator.onrender.com
 
-    public startConnection(hubUrl = 'http://localhost:5001/matchHub') {
+
+    // public startConnection(hubUrl = 'http://localhost:5001/matchHub') {
+    public startConnection(hubUrl = 'https://footysimulator.onrender.com/matchHub') {
         this.hubConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl)
             .withAutomaticReconnect()
