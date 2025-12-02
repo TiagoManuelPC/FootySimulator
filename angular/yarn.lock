@@ -2901,6 +2901,11 @@ hasown@^2.0.2:
   dependencies:
     function-bind "^1.1.2"
 
+heatmap-ts@^0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/heatmap-ts/-/heatmap-ts-0.0.5.tgz#e27f781bd724ef979e67273d906b7a18a0018e00"
+  integrity sha512-u75dNVbKFTC8sdcWxr0HdQ0ceb4hkgqDlzI8vv76gX9clZBdzOJyAKDfh+vDuha9TkD+pe5iQPkuD4iY3hadng==
+
 heatmap.js@^2.0.5:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/heatmap.js/-/heatmap.js-2.0.5.tgz#466d3b86513f5d49112a49d25700ab2730149153"
@@ -4461,6 +4466,11 @@ sigstore@^3.0.0:
     "@sigstore/sign" "^3.1.0"
     "@sigstore/tuf" "^3.1.0"
     "@sigstore/verify" "^2.1.0"
+
+simpleheat@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/simpleheat/-/simpleheat-0.4.0.tgz#e2de8d4548fcf1a6960b636bfa939d05bcd49a7b"
+  integrity sha512-tdg3I1NvzMdPKscWBrHbF0LBf+VWuBBazzGUPtFJjG5Q12VQX6gPY8jLy9hx5CbgAIVc5nfnePwJvAYK6z1rAA==
 
 slice-ansi@^5.0.0:
   version "5.0.0"

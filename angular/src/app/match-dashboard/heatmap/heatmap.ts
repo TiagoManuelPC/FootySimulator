@@ -101,104 +101,114 @@
 //     }
 // }
 
-import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
-import * as h337 from 'heatmap.js';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import simpleheat from 'simpleheat';
 
 @Component({
   selector: 'app-heatmap',
-  template: `
-    <div class="heatmap-wrap">
-      <div #heatmapContainer class="heatmap-layer"></div>
-      <button class="btn-add" (click)="addRandomData()">Add Random Data</button>
-    </div>
-  `,
-  styles: [`
-    .heatmap-wrap {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      background: #111;
-    }
-    .heatmap-layer {
-      position: absolute;
-      inset: 0;
-    }
-    .btn-add {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-      padding: 6px 12px;
-      background: #fff;
-      border: none;
-      cursor: pointer;
-    }
-  `]
+  template: `<div #heatmapContainer class="heatmap-container" style="position:relative; width:100%; height:100vh;"></div>`,
+  styles: []
 })
-export class Heatmap implements AfterViewInit {
+export class Heatmap implements AfterViewInit, OnDestroy {
   @ViewChild('heatmapContainer', { static: true }) container!: ElementRef<HTMLDivElement>;
-  private heatmapInstance: any;
+  private heat!: ReturnType<typeof simpleheat> | null;
+  private canvas!: HTMLCanvasElement | null;
+  private resizeObserver: ResizeObserver | null = null;
+  private dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
   ngAfterViewInit(): void {
-    // Wait for layout to stabilize
-    requestAnimationFrame(() => {
-      const rect = this.container.nativeElement.getBoundingClientRect();
+    const containerEl = this.container.nativeElement;
 
-      // Force container size
-      this.container.nativeElement.style.width = rect.width + 'px';
-      this.container.nativeElement.style.height = rect.height + 'px';
+    // create an explicit canvas so we control sizing and DPR handling
+    this.canvas = document.createElement('canvas');
+    this.canvas.style.position = 'absolute';
+    this.canvas.style.inset = '0';
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
+    containerEl.appendChild(this.canvas);
 
-      // Create heatmap instance — **CPU canvas only**
-      this.heatmapInstance = (h337 as any).create({
-        container: this.container.nativeElement,
-        renderer: 'webgl',   // use WebGL to avoid ImageData mutation
-        radius: 40,
-        maxOpacity: 0.7,
-        minOpacity: 0,
-        blur: 0.9
-      });
+    const setup = () => {
+      const rect = containerEl.getBoundingClientRect();
+      let layoutW = Math.max(1, Math.round(rect.width));
+      let layoutH = Math.max(1, Math.round(rect.height));
 
-      // Force CPU-backed 2D context (writable ImageData)
-      const canvas = this.container.nativeElement.querySelector('canvas');
-      canvas?.getContext('2d', { willReadFrequently: true });
+      // defensive fallback when parent hasn't laid out yet
+      if (layoutW < 50 || layoutH < 50) {
+        layoutW = Math.max(300, Math.round(window.innerWidth));
+        layoutH = Math.max(200, Math.round(window.innerHeight));
+      }
 
-      // Ensure canvas matches container size
-      this.heatmapInstance._renderer.setDimensions(rect.width, rect.height);
+      // set CSS size and backing store for DPR
+      this.canvas!.style.width = `${layoutW}px`;
+      this.canvas!.style.height = `${layoutH}px`;
+      this.canvas!.width = layoutW * this.dpr;
+      this.canvas!.height = layoutH * this.dpr;
 
-      // Generate initial random points
-      this.addRandomData();
+      const ctx = this.canvas!.getContext('2d');
+      if (ctx) ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+
+      // initialize simpleheat with a DPR-aware radius
+      this.heat = simpleheat(this.canvas as HTMLCanvasElement);
+      this.heat.radius(25 * this.dpr, 15 * this.dpr);
+      this.heat.clear();
+    };
+
+    setup();
+
+    // watch for container size changes
+    this.resizeObserver = new ResizeObserver(() => {
+      setup();
+      // redraw any existing data if desired
     });
+    this.resizeObserver.observe(containerEl);
+
+    // Example: add random points into the backing buffer coordinates
+    this.addRandomData(500);
   }
 
-  addRandomData(len = 1000) {
-    if (!this.heatmapInstance) return;
+  ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    this.heat = null;
+    this.canvas = null;
+  }
 
-    const rect = this.container.nativeElement.getBoundingClientRect();
-    const data: any[] = [];
-    const max = 100;
-    const min = 1;
+  addRandomData(count = 500) {
+    if (!this.heat || !this.canvas) return;
+    const bw = this.canvas.width; // backing buffer width (DPR scaled)
+    const bh = this.canvas.height; // backing buffer height
 
-    for (let i = 0; i < len; i++) {
-      data.push({
-        x: Math.floor(Math.random() * rect.width),
-        y: Math.floor(Math.random() * rect.height),
-        value: Math.floor(Math.random() * (max - min + 1)) + min
-      });
+    const points: [number, number, number][] = [];
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * bw;
+      const y = Math.random() * bh;
+      const value = Math.random();
+      points.push([x, y, value]);
     }
 
-    // Use setData instead of addData to avoid read-only issues
-    this.heatmapInstance.setData({ max, min, data });
+    // simpleheat expects points in backing-pixel coordinates when the canvas
+    // backing buffer is used directly; we already generated in those coords.
+    this.heat.data(points).draw();
   }
 
   addPoint(team: string, x: number, y: number) {
-        // const rect = this.container.nativeElement.getBoundingClientRect();
-        // const px = ((x + 52) / 104) * rect.width;
-        // const py = ((34 - y) / 68) * rect.height;
-        // this.heatmapInstance.addData({
-        //     x: Math.round(px),
-        //     y: Math.round(py),
-        //     value: team === 'Liverpool FC' ? 6 : 4
-        // });
-    }
+    // map your logical pitch coords to canvas backing buffer coordinates
+    if (!this.canvas || !this.heat) return;
+    const rect = (this.canvas as HTMLCanvasElement).getBoundingClientRect();
+    const bw = this.canvas.width;
+    const bh = this.canvas.height;
+
+    // Example mapping — adapt to your pitch coordinate system
+    const px = ((x + 52) / 104) * bw;
+    const py = ((34 - y) / 68) * bh;
+    const value = team === 'Liverpool FC' ? 6 : 4;
+    this.heat.add([px, py, value]);
+    this.heat.draw();
+  }
+
 }
+
+
 

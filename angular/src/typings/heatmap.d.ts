@@ -15,3 +15,4 @@
 //   export default heatmap;
 // }
 declare module 'heatmap.js';
+
