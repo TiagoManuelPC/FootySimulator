@@ -151,7 +151,7 @@ export class Heatmap implements AfterViewInit {
       // Create heatmap instance — **CPU canvas only**
       this.heatmapInstance = (h337 as any).create({
         container: this.container.nativeElement,
-        renderer: 'canvas',   // force CPU canvas
+        renderer: 'webgl',   // use WebGL to avoid ImageData mutation
         radius: 40,
         maxOpacity: 0.7,
         minOpacity: 0,
