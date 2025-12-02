@@ -13,19 +13,51 @@ export class Heatmap implements AfterViewInit {
 
     private heatmapInstance: any;
 
-    ngAfterViewInit(): void {
-        this.drawPitch();
+      ngAfterViewInit(): void {
+    this.drawPitch();
 
-        this.heatmapInstance = (h337 as any).create({
-            container: this.container.nativeElement,
-            radius: 40,
-            maxOpacity: 0.7,
-            minOpacity: 0,
-            blur: 0.8
-        });
-        console.log('Heatmap initialized');
-        console.log(this.heatmapInstance);
-    }
+    // Wait for layout to stabilize
+    requestAnimationFrame(() => {
+      // Ensure container has a size
+      const rect = this.container.nativeElement.getBoundingClientRect();
+      this.container.nativeElement.style.width = rect.width + 'px';
+      this.container.nativeElement.style.height = rect.height + 'px';
+
+      // Create heatmap instance
+      this.heatmapInstance = (h337 as any).create({
+        container: this.container.nativeElement,
+        renderer: 'canvas',   // force software renderer
+        radius: 40,
+        maxOpacity: 0.7,
+        minOpacity: 0,
+        blur: 0.8
+      });
+
+      // Force CPU-backed canvas (writable ImageData)
+      const canvas = this.container.nativeElement.querySelector('canvas');
+      canvas?.getContext('2d', { willReadFrequently: true });
+
+      // Patch _colorize to never assign to read-only .data
+      const renderer = this.heatmapInstance._renderer;
+    //   renderer._colorize = function(imageData, gradient) {
+    //     if (!imageData || !imageData.data) return;
+    //     const data = imageData.data;
+    //     for (let i = 0; i < data.length; i += 4) {
+    //       const alpha = data[i + 3] * 4;
+    //       const g = gradient[alpha];
+    //       if (g) {
+    //         data[i] = g[0];
+    //         data[i + 1] = g[1];
+    //         data[i + 2] = g[2];
+    //       }
+    //     }
+    //   };
+
+      // Ensure heatmap canvas matches container size
+      this.heatmapInstance._renderer.setDimensions(rect.width, rect.height);
+    });
+  }
+
 
     // Draw football pitch lines
     private drawPitch() {
