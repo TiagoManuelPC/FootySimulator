@@ -28,7 +28,9 @@ export class MatchDashboardComponent implements OnInit {
     constructor(private sr: SignalrService) { }
 
     ngOnInit(): void {
-        this.sr.startConnection('https://localhost:5001/matchHub'); // update url if needed
+        // https://footysimulator.onrender.com/matchHub
+        // this.sr.startConnection('https://localhost:5001/matchHub');
+        this.sr.startConnection('https://footysimulator.onrender.com/matchHub'); // update url if needed
         this.sr.event$.subscribe(ev => this.onEvent(ev));
     }
 
