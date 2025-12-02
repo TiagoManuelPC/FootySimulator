@@ -13,6 +13,8 @@ export class Heatmap implements AfterViewInit, OnDestroy {
     private canvas!: HTMLCanvasElement | null;
     private resizeObserver: ResizeObserver | null = null;
     private dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    // persistent storage of points as normalized coordinates (0..1)
+    private normalizedPoints: Array<[number, number, number]> = [];
 
     ngAfterViewInit(): void {
         this.drawPitch();
@@ -50,6 +52,8 @@ export class Heatmap implements AfterViewInit, OnDestroy {
             this.heat = simpleheat(this.canvas as HTMLCanvasElement);
             this.heat.radius(25 * this.dpr, 15 * this.dpr);
             this.heat.clear();
+            // redraw any persisted points after (re)initializing
+            this.redrawPoints();
         };
 
         setup();
@@ -57,7 +61,8 @@ export class Heatmap implements AfterViewInit, OnDestroy {
         // watch for container size changes
         this.resizeObserver = new ResizeObserver(() => {
             setup();
-            // redraw any existing data if desired
+            // setup() calls redrawPoints(), but ensure redraw after resize
+            this.redrawPoints();
         });
         this.resizeObserver.observe(containerEl);
     }
@@ -136,17 +141,37 @@ export class Heatmap implements AfterViewInit, OnDestroy {
     }
 
     addPoint(team: string, x: number, y: number) {
-        // map your logical pitch coords to canvas backing buffer coordinates
+        // persist as normalized coordinates so the point survives resize
+        if (!this.canvas || !this.heat) return;
+        const nx = ((x + 52) / 104); // fraction across pitch width
+        const ny = ((34 - y) / 68);  // fraction across pitch height
+        const value = team === 'Liverpool FC' ? 6 : 4;
+        this.normalizedPoints.push([nx, ny, value]);
+        this.redrawPoints();
+    }
+
+    addRandomData(count = 500) {
+        if (!this.canvas || !this.heat) return;
+        for (let i = 0; i < count; i++) {
+            const nx = Math.random();
+            const ny = Math.random();
+            const v = Math.random();
+            this.normalizedPoints.push([nx, ny, v]);
+        }
+        this.redrawPoints();
+    }
+
+    // convert normalized points to backing-buffer coordinates and draw
+    private redrawPoints() {
         if (!this.canvas || !this.heat) return;
         const bw = this.canvas.width;
         const bh = this.canvas.height;
-
-        // Example mapping — adapt to your pitch coordinate system
-        const px = ((x + 52) / 104) * bw;
-        const py = ((34 - y) / 68) * bh;
-        const value = team === 'Liverpool FC' ? 6 : 4;
-        this.heat.add([px, py, value]);
-        this.heat.draw();
+        if (!this.normalizedPoints || this.normalizedPoints.length === 0) {
+            this.heat.clear();
+            return;
+        }
+        const pts: [number, number, number][] = this.normalizedPoints.map(p => [p[0] * bw, p[1] * bh, p[2]]);
+        this.heat.data(pts).draw();
     }
 
 }
