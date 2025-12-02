@@ -51,6 +51,14 @@ using API.Hubs;
 using API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// If a platform (like Render) provides a PORT env var, bind Kestrel to it.
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
+{
+    // Listen on the platform's assigned port for HTTP
+    builder.WebHost.UseUrls($"http://*:{port}");
+}
 builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
