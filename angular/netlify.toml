@@ -1,7 +1,7 @@
 [build]
-base = "angular"
-publish = "dist/angular/browser"
-command = "ng build"
+base = ""
+publish = "dist/angular"
+command = "yarn build"
 
 [[redirects]]
 from = "/*"

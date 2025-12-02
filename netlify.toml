@@ -1,0 +1,9 @@
+[build]
+  base = "angular"
+  publish = "dist/angular"
+  command = "yarn build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
