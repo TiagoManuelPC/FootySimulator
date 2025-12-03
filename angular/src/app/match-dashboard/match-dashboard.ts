@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, ViewChild } from '@angular/core';
-import { MatchEvent, SignalrService } from '../services/match-signalr.service';
+import { MatchEvent, SignalrService } from '../../services/match-signalr.service';
 import { DatePipe } from '@angular/common';
 import { Heatmap } from './heatmap/heatmap';
 import { PossessionChart } from './possession-chart/possession-chart';
@@ -29,7 +29,6 @@ export class MatchDashboardComponent implements OnInit {
     constructor(private sr: SignalrService) { }
 
     ngOnInit(): void {
-        console.log('Connecting to SignalR at', environment.apiUrl + 'matchHub');
         this.sr.startConnection(environment.apiUrl + 'matchHub');
         this.sr.event$.subscribe(ev => this.onEvent(ev));
     }

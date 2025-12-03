@@ -1,7 +1,7 @@
 import { Component, signal, ViewChild } from '@angular/core';
 import { ChartConfiguration } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
-import { MatchEvent } from '../../services/match-signalr.service';
+import { MatchEvent } from '../../../services/match-signalr.service';
 
 @Component({
     selector: 'app-goalprob-chart',
