@@ -1,7 +1,7 @@
-import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { MatchDashboardComponent } from "./match-dashboard/match-dashboard";
 import { ThemeToggleComponent } from './theme-toggle/theme-toggle';
-import { Facs } from '../facs/facs';
+import { Facs } from './facs/facs';
 
 @Component({
     selector: 'app-root',

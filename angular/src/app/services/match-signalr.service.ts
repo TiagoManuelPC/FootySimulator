@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { Subject } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface MatchEvent {
     id?: string;
@@ -20,11 +21,8 @@ export interface MatchEvent {
 export class SignalrService {
     private hubConnection!: signalR.HubConnection;
     public event$ = new Subject<MatchEvent>();
-    // https://footysimulator.onrender.com
 
-
-    // public startConnection(hubUrl = 'http://localhost:5001/matchHub') {
-    public startConnection(hubUrl = 'https://footysimulator.onrender.com/matchHub') {
+    public startConnection(hubUrl = environment.apiUrl + 'matchHub') {
         this.hubConnection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl)
             .withAutomaticReconnect()

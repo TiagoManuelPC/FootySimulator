@@ -4,6 +4,7 @@ import { DatePipe } from '@angular/common';
 import { Heatmap } from './heatmap/heatmap';
 import { PossessionChart } from './possession-chart/possession-chart';
 import { GoalprobChart } from './goalprob-chart/goalprob-chart';
+import { environment } from '../../environments/environment';
 
 interface TeamStats {
     name: string;
@@ -28,9 +29,8 @@ export class MatchDashboardComponent implements OnInit {
     constructor(private sr: SignalrService) { }
 
     ngOnInit(): void {
-        // https://footysimulator.onrender.com/matchHub
-        // this.sr.startConnection('https://localhost:5001/matchHub');
-        this.sr.startConnection('https://footysimulator.onrender.com/matchHub'); // update url if needed
+        console.log('Connecting to SignalR at', environment.apiUrl + 'matchHub');
+        this.sr.startConnection(environment.apiUrl + 'matchHub');
         this.sr.event$.subscribe(ev => this.onEvent(ev));
     }
 
